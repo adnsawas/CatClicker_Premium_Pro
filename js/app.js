@@ -3,6 +3,7 @@
 
 var model = {
     currentCat: null,
+    currentCatIndex: 0,
     cats: [
         {
             clickCount : 0,
@@ -49,6 +50,7 @@ var octopus = {
         // tell our views to initialize
         catListView.init();
         catView.init();
+        catAdminView.init();
     },
 
     getCurrentCat: function() {
@@ -60,15 +62,61 @@ var octopus = {
     },
 
     // set the currently-selected cat to the object passed in
-    setCurrentCat: function(cat) {
+    setCurrentCat: function(cat, catIndex) {
         model.currentCat = cat;
+        model.currentCatIndex = catIndex;
     },
 
     // increments the counter for the currently-selected cat
     incrementCounter: function() {
         model.currentCat.clickCount++;
         catView.render();
+    },
+    
+    // hide the cat admin form
+    hideAdminForm: function() {
+        catAdminView.adminForm.form.hidden = true;
+    },
+    
+    // show the cat admin form and fill in current cat data
+    showAdminForm: function() {
+        // First, fill in current cat data in the admin form fields
+        this.updateAdminFormValues();
+        
+        // Then show the admin form
+        catAdminView.adminForm.form.hidden = false;
+    },
+    
+    updateAdminFormValues: function() {
+        catAdminView.adminForm.name.value = model.currentCat.name;
+        catAdminView.adminForm.url.value = model.currentCat.imgSrc;
+        catAdminView.adminForm.counter.value = model.currentCat.clickCount;
+    },
+    
+    updateCatData: function() {
+        // 3 things need to be updated: model, cat list view and cat view area
+        
+        // Updating the Model: Update current cat and cats list
+        // Updating the current cat
+        model.currentCat.name = catAdminView.adminForm.name.value;
+        model.currentCat.imgSrc = catAdminView.adminForm.url.value;
+        model.currentCat.clickCount = catAdminView.adminForm.counter.value;
+        
+        // Updating the cat list
+        model.cats[model.currentCatIndex].name = catAdminView.adminForm.name.value;
+        model.cats[model.currentCatIndex].imgSrc = catAdminView.adminForm.url.value;
+        model.cats[model.currentCatIndex].clickCount = catAdminView.adminForm.counter.value;
+        
+        
+        // Updating the cats list view and cat view area
+        catListView.render();
+        catView.render();
+        
+        
+        // Hide the admin form
+        this.hideAdminForm();
     }
+    
 };
 
 
@@ -131,16 +179,52 @@ var catListView = {
             // on click, setCurrentCat and render the catView
             // (this uses our closure-in-a-loop trick to connect the value
             //  of the cat variable to the click event function)
-            elem.addEventListener('click', (function(catCopy) {
+            elem.addEventListener('click', (function(catCopy, iCopy) {
                 return function() {
-                    octopus.setCurrentCat(catCopy);
+                    octopus.setCurrentCat(catCopy, iCopy);
                     catView.render();
+                    catAdminView.render();
                 };
-            })(cat));
+            })(cat, i));
 
             // finally, add the element to the list
             this.catListElem.appendChild(elem);
         }
+    }
+};
+
+var catAdminView = {
+    init: function() {
+        // Store DOM elements for easy access later
+        this.adminButton = document.getElementById('admin-button');
+        this.adminForm = {};
+        this.adminForm.form = document.getElementById('admin-form');
+        this.adminForm.name = document.getElementById('admin-form')[0];
+        this.adminForm.url = document.getElementById('admin-form')[1];
+        this.adminForm.counter = document.getElementById('admin-form')[2];
+        this.adminForm.save = document.getElementById('admin-form')[3];
+        this.adminForm.cancel = document.getElementById('admin-form')[4];
+        
+        // Make the admin button shows the admin form
+        this.adminButton.addEventListener('click', function() {
+            octopus.showAdminForm();
+        });
+        
+        // Add functionality to form "Save" and "Cancel" buttons
+        this.adminForm.save.addEventListener('click', function() {
+           octopus.updateCatData(); 
+        });
+        this.adminForm.cancel.addEventListener('click', function() {
+            octopus.hideAdminForm();
+        });
+        
+        // Make the admin form hidden by default
+        octopus.hideAdminForm();
+        
+    },
+    
+    render: function() {
+        octopus.updateAdminFormValues();
     }
 };
 
